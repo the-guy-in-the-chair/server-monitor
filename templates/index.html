@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Plex Control</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+  </head>
+  <body>
+    <!-- NAS Connection Status -->
+    <section class="section section-nas">
+      <h2 class="visually-hidden">NAS Connection Status</h2>
+
+      <div class="nas-grid plex-grid">
+        <!-- Single row for NAS status -->
+        <div class="nas-label plex-label">NAS Connection Status:</div>
+
+        <!-- This cell displays the status returned from Flask backend -->
+        <div class="nas-status-cell plex-status-cell">
+          <div id="nas-status" 
+               class="status-badge {% if nas_connection_status == 'Connected' %}status-running{% elif nas_connection_status == 'Disconnected' %}status-down{% else %}status-default{% endif %}"
+               hx-trigger="load"
+               hx-get="/nas-status"
+               hx-swap="innerHTML">
+            {{ nas_connection_status | default('Unknown') }}
+          </div>
+        </div>
+
+        <!-- Retry button in third column to match other layouts -->
+        <div class="nas-action plex-action">
+          <button hx-get="/retry-nas-connection" 
+                  hx-target="#nas-status"
+                  hx-swap="innerHTML">Retry NAS Connection</button>
+        </div>
+        <div class="nas-empty"></div>
+      </div>
+    </section>
+
+    <!-- Section One: Plex status + controls -->
+    <section class="section section-one">
+      <h2 class="visually-hidden">Plex Controls</h2>
+
+      <div class="plex-grid">
+        <!-- Row 1 -->
+        <div class="plex-label">Plex Status:</div>
+
+        <!-- This cell displays the status returned from Flask backend at /get-plex-status -->
+        <div class="plex-status-cell">
+          <div id="plex-status" 
+               class="status-badge {% if plex_status == 'Running' %}status-running{% elif plex_status == 'Down' %}status-down{% else %}status-default{% endif %}"
+               hx-trigger="load"
+               hx-get="/plex-status"
+               hx-swap="innerHTML">
+            {{ plex_status | default('Unknown') }}
+          </div>
+        </div>
+
+        <!-- empty third column in first row to keep three equal columns -->
+        <div class="plex-empty"></div>
+
+        <!-- Row 2: three buttons with equal spacing -->
+        <div class="plex-action">
+          <button hx-get="/start-plex" 
+                  hx-target="#plex-status"
+                  hx-swap="innerHTML">Start Plex</button>
+        </div>
+
+        <div class="plex-action">
+          <button hx-get="/stop-plex" 
+                  hx-target="#plex-status"
+                  hx-swap="innerHTML">Stop Plex</button>
+        </div>
+
+        <div class="plex-action">
+          <button hx-get="/restart-plex" 
+                  hx-target="#plex-status"
+                  hx-swap="innerHTML">Restart Plex</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section Two: Jellyfin status + controls -->
+    <section class="section section-two">
+      <h2 class="visually-hidden">Jellyfin Controls</h2>
+
+      <div class="jellyfin-grid plex-grid">
+        <!-- Row 1 -->
+        <div class="jellyfin-label plex-label">Jellyfin Status:</div>
+
+        <!-- This cell displays the status returned from Flask backend at /get-jellyfin-status -->
+        <div class="jellyfin-status-cell plex-status-cell">
+          <div id="jellyfin-status" 
+               class="status-badge {% if jellyfin_status == 'Running' %}status-running{% elif jellyfin_status == 'Down' %}status-down{% else %}status-default{% endif %}"
+               hx-trigger="load"
+               hx-get="/jellyfin-status"
+               hx-swap="innerHTML">
+            {{ jellyfin_status | default('Unknown') }}
+          </div>
+        </div>
+
+        <!-- empty third column in first row to keep three equal columns -->
+        <div class="jellyfin-empty"></div>
+
+        <!-- Row 2: three buttons with equal spacing -->
+        <div class="jellyfin-action plex-action">
+          <button hx-get="/start-jellyfin" 
+                  hx-target="#jellyfin-status"
+                  hx-swap="innerHTML">Start Jellyfin</button>
+        </div>
+
+        <div class="jellyfin-action plex-action">
+          <button hx-get="/stop-jellyfin" 
+                  hx-target="#jellyfin-status"
+                  hx-swap="innerHTML">Stop Jellyfin</button>
+        </div>
+
+        <div class="jellyfin-action plex-action">
+          <button hx-get="/restart-jellyfin" 
+                  hx-target="#jellyfin-status"
+                  hx-swap="innerHTML">Restart Jellyfin</button>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      document.body.addEventListener('htmx:beforeSwap', function(evt) {
+        if (evt.detail.target) {
+          const status = evt.detail.xhr.response;
+          const statusBadge = evt.detail.target;
+          
+          // Remove existing status classes
+          statusBadge.classList.remove('status-running', 'status-down', 'status-default');
+          
+          // Add appropriate class based on new status
+          if (status === 'Running') {
+            statusBadge.classList.add('status-running');
+          } else if (status === 'Down') {
+            statusBadge.classList.add('status-down');
+          } else if (status === 'Connected') {
+            statusBadge.classList.add('status-running');
+          } else if (status === 'Disconnected') {
+            statusBadge.classList.add('status-down');
+          } else {
+            statusBadge.classList.add('status-default');
+          }
+
+          // Update the text content
+          statusBadge.textContent = status;
+        }
+      });
+    </script>
+  </body>
+</html>
