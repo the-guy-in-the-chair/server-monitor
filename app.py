@@ -6,9 +6,17 @@ import subprocess
 app = Flask(__name__)
 
 def get_nas_connection_status():
-    # TODO: Implement actual NAS connection check
-    # This is a placeholder - replace with real NAS connection check
-    return "Unknown"  # Default status until actual check is implemented
+    try:
+        result = subprocess.run(['timeout', '10', 'ls', '/mnt/myshare'], capture_output=True, text=True)
+        if result.returncode == 0:
+            return "Connected"
+        elif result.returncode == 124 or result.returncode == 2:
+            return "Disconnected"
+        else:
+            return "Unknown"
+    except Exception as e:
+        print(f"Error checking NAS connection status: {e}")
+    return "Unknown"
 
 def retryNasConnection():
     # TODO: Implement actual NAS connection retry logic
@@ -54,11 +62,13 @@ def get_plex_status():
         status_output = result.stdout.strip()
         if status_output == 'active':
             return "Running"
-        else:
+        elif status_output == 'inactive':
             return "Down"
+        else:
+            return "Unknown"
     except Exception as e:
         print(f"Error getting Plex status: {e}")
-    return "Unknown"  # Default status until actual check is implemented
+    return "Unknown"  # Default status
 
 @app.route('/plex-status')
 def get_plex_status_endpoint():
@@ -80,7 +90,7 @@ def start_plex():
 def stop_plex():
     try:
         stopPlex()  # Call the function to stop Plex
-        status = "Down"  # Assuming successful stop
+        status = get_plex_status() # Check if stopped successfully
     except Exception as e:
         print(f"Error stopping Plex: {e}")
         status = "Error"
@@ -90,8 +100,7 @@ def stop_plex():
 def restart_plex():
     try:
         restartPlex()  # Call the function to restart Plex
-        print("it works!")
-        status = "Running"  # Assuming successful restart
+        status = get_plex_status()  # Check if restarted successfully
     except Exception as e:
         print(f"Error restarting Plex: {e}")
         status = "Error"
@@ -120,8 +129,17 @@ def restartPlex():
 
 # Jellyfin Control Functions
 def get_jellyfin_status():
-    # TODO: Implement actual Jellyfin status check
-    # This is a placeholder - replace with real Jellyfin server status check
+    try:
+        result = subprocess.run(['sudo', 'systemctl', 'is-active', 'jellyfin.service'], capture_output=True, text=True)
+        status_output = result.stdout.strip()
+        if status_output == 'active':
+            return "Running"
+        elif status_output == 'inactive':
+            return "Down"
+        else:
+            return "Unknown"
+    except Exception as e:
+        print(f"Error getting Jellyfin status: {e}")
     return "Unknown"  # Default status until actual check is implemented
 
 @app.route('/jellyfin-status')
@@ -134,7 +152,7 @@ def get_jellyfin_status_endpoint():
 def start_jellyfin():
     try:
         startJellyfin()  # Call the function to start Jellyfin
-        status = "Running"  # Assuming successful start
+        status = get_jellyfin_status()  # Check if started successfully
     except Exception as e:
         print(f"Error starting Jellyfin: {e}")
         status = "Error"
@@ -144,7 +162,7 @@ def start_jellyfin():
 def stop_jellyfin():
     try:
         stopJellyfin()  # Call the function to stop Jellyfin
-        status = "Down"  # Assuming successful stop
+        status = get_jellyfin_status()  # Check if stopped successfully
     except Exception as e:
         print(f"Error stopping Jellyfin: {e}")
         status = "Error"
@@ -154,32 +172,32 @@ def stop_jellyfin():
 def restart_jellyfin():
     try:
         restartJellyfin()  # Call the function to restart Jellyfin
-        status = "Running"  # Assuming successful restart
+        status = get_jellyfin_status()  # Check if restarted successfully
     except Exception as e:
         print(f"Error restarting Jellyfin: {e}")
         status = "Error"
     return status
 
 def startJellyfin():
-    # TODO: Implement actual Jellyfin start logic
-    # This is where you'll put the code to start your Jellyfin server
     print("Starting Jellyfin server...")
-    # Add your Jellyfin start implementation here
-    pass
+    try:
+        subprocess.run(['sudo', 'systemctl', 'start', 'jellyfin.service'], check=True)
+    except Exception as e:
+        print(f"Error starting Jellyfin: {e}")
 
 def stopJellyfin():
-    # TODO: Implement actual Jellyfin stop logic
-    # This is where you'll put the code to stop your Jellyfin server
     print("Stopping Jellyfin server...")
-    # Add your Jellyfin stop implementation here
-    pass
+    try:
+        subprocess.run(['sudo', 'systemctl', 'stop', 'jellyfin.service'], check=True)
+    except Exception as e:
+        print(f"Error stopping Jellyfin: {e}")
 
 def restartJellyfin():
-    # TODO: Implement actual Jellyfin restart logic
-    # This is where you'll put the code to restart your Jellyfin server
     print("Restarting Jellyfin server...")
-    # Add your Jellyfin restart implementation here
-    pass
+    try:
+        subprocess.run(['sudo', 'systemctl', 'restart', 'jellyfin.service'], check=True)
+    except Exception as e:
+        print(f"Error restarting Jellyfin: {e}")
 
 @app.route('/helloworld')
 def helloworld():
