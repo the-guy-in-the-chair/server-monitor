@@ -21,7 +21,7 @@
         <div class="nas-status-cell plex-status-cell">
           <div id="nas-status" 
                class="status-badge {% if nas_connection_status == 'Connected' %}status-running{% elif nas_connection_status == 'Disconnected' %}status-down{% else %}status-default{% endif %}"
-               hx-trigger="load"
+               hx-trigger="load, every 60s"
                hx-get="/nas-status"
                hx-swap="innerHTML">
             {{ nas_connection_status | default('Unknown') }}
@@ -50,7 +50,7 @@
         <div class="plex-status-cell">
           <div id="plex-status" 
                class="status-badge {% if plex_status == 'Running' %}status-running{% elif plex_status == 'Down' %}status-down{% else %}status-default{% endif %}"
-               hx-trigger="load"
+               hx-trigger="load, every 60s"
                hx-get="/plex-status"
                hx-swap="innerHTML">
             {{ plex_status | default('Unknown') }}
@@ -93,7 +93,7 @@
         <div class="jellyfin-status-cell plex-status-cell">
           <div id="jellyfin-status" 
                class="status-badge {% if jellyfin_status == 'Running' %}status-running{% elif jellyfin_status == 'Down' %}status-down{% else %}status-default{% endif %}"
-               hx-trigger="load"
+               hx-trigger="load, every 60s"
                hx-get="/jellyfin-status"
                hx-swap="innerHTML">
             {{ jellyfin_status | default('Unknown') }}
@@ -120,6 +120,18 @@
           <button hx-get="/restart-jellyfin" 
                   hx-target="#jellyfin-status"
                   hx-swap="innerHTML">Restart Jellyfin</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section: Shutdown Script -->
+    <section class="section section-nas">
+      <h2 class="visually-hidden">NAS Connection Status</h2>
+
+      <div class="nas-grid plex-grid">
+        <!-- Retry button in third column to match other layouts -->
+        <div class="nas-action plex-action">
+          <button hx-get="/shutdown">Shutdown Monitor</button>
         </div>
       </div>
     </section>

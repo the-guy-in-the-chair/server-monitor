@@ -1,13 +1,71 @@
 # when ready to ship, run "pip3 freeze > requirements.txt" and it will
 # pipe all of your requirements into the file
-from flask import Flask, render_template
-import subprocess
+
+# GENERAL IMPORTS
 from dotenv import load_dotenv
 import os
+import time
+
+# FLASK IMPORTS
+from flask import Flask, render_template, jsonify, request
+import subprocess
+
+# SMS SYSTEM IMPORTS
+import threading
+import smtplib
+from email.message import EmailMessage
 
 load_dotenv()  # Load environment variables from .env file
 DB_PATH = os.getenv('DB_PATH')
 DB_CONNECT_CMD = os.getenv('DB_CONNECT_CMD')
+APP_EMAIL = os.environ.get('APP_EMAIL')
+APP_PASS = os.environ.get('APP_PASS')
+DEST_NUMBER = os.environ.get('DEST_NUMBER')
+DEST_EMAIL = DEST_NUMBER+'@'+os.environ.get('GATEWAY')
+
+
+#### SMS SYSTEM FUNCTIONS ####
+
+def server_event_listener():
+    while True:
+        # need some sort of break statement
+
+        # get NAS Connection status
+        nas_status = get_nas_connection_status()
+        if ( nas_status != "Connected" ):
+            send_text("NAS_DISCONNECT","The NAS has disconnected!",DEST_EMAIL)
+        # get Plex Connection status
+        plex_status = plex_status()
+        if ( plex_status != "Running" ):
+            send_text("PLEX_DOWN","Plex is currently down!",DEST_EMAIL)
+        # get NAS Connection status
+        jellyfin_status = jellyfin_status()
+        if ( jellyfin_status != "Running" ):
+            send_text("JELLYFIN_DOWN","Jellyfin is currently down!",DEST_EMAIL)
+        
+        # 10s between calls
+        time.sleep(60)
+
+def send_text(subject, body, destination):
+
+    # creating the email message
+    msg = EmailMessage()
+    msg.set_content(body)
+    msg['subject'] = subject
+    msg['to'] = destination
+    msg['from'] = APP_EMAIL
+
+    # creating the SMTP server
+    smtp_server = smtplib.SMTP("smtp.gmail.com", 587)
+    smtp_server.starttls()
+    smtp_server.login(APP_EMAIL, APP_PASS)
+    smtp_server.send_message(msg)
+    smtp_server.quit()
+
+##############################
+
+
+###### FLASK APP SETUP #######
 
 app = Flask(__name__)
 
@@ -30,10 +88,6 @@ def retryNasConnection():
         subprocess.run(['sudo', 'mount', '-o', 'remount', DB_CONNECT_CMD], check=True)
     except Exception as e:
         print(f"Error retrying NAS connection: {e}")
-
-from flask import jsonify
-
-from flask import request
 
 @app.route('/nas-status')
 def nas_status():
@@ -209,5 +263,11 @@ def restartJellyfin():
 def helloworld():
     return "<h1>Hello World!</h1>"
 
+##############################
+
+
 if __name__ == "__main__":
+    # starting the flask app
     app.run(host='0.0.0.0', port=5000, debug=True)
+    # running the server event listener in a separate thread
+    threading.Thread(target=server_event_listener, daemon=True).start()
