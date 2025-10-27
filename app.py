@@ -2,12 +2,18 @@
 # pipe all of your requirements into the file
 from flask import Flask, render_template
 import subprocess
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load environment variables from .env file
+DB_PATH = os.getenv('DB_PATH')
+DB_CONNECT_CMD = os.getenv('DB_CONNECT_CMD')
 
 app = Flask(__name__)
 
 def get_nas_connection_status():
     try:
-        result = subprocess.run(['timeout', '10', 'ls', '/mnt/myshare'], capture_output=True, text=True)
+        result = subprocess.run(['timeout', '10', 'ls', DB_PATH], capture_output=True, text=True)
         if result.returncode == 0:
             return "Connected"
         elif result.returncode == 124 or result.returncode == 2:
@@ -19,11 +25,11 @@ def get_nas_connection_status():
     return "Unknown"
 
 def retryNasConnection():
-    # TODO: Implement actual NAS connection retry logic
-    # This is where you'll put the code to retry the NAS connection
     print("Retrying NAS connection...")
-    # Add your NAS connection retry implementation here
-    pass
+    try:
+        subprocess.run(['sudo', 'mount', '-o', 'remount', DB_CONNECT_CMD], check=True)
+    except Exception as e:
+        print(f"Error retrying NAS connection: {e}")
 
 from flask import jsonify
 
